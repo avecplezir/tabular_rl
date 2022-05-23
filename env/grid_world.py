@@ -165,6 +165,8 @@ class GridWorld:
             restart_state = row_col_to_seq(self.restart_states[i,:].reshape(1,-1), self.num_cols)
             self.R[restart_state, :] = self.r_restart
 
+        print('self.R', self.R)
+
         # probability model
         if self.p_good_trans == None:
             raise Exception("Must assign probability and bias terms via the add_transition_probability method.")

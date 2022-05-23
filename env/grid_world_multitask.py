@@ -151,14 +151,21 @@ class GridWorld:
         self.goal_states_seq = row_col_to_seq(self.goal_states, self.num_cols)
 
         # rewards structure
-        self.R = self.r_step * np.ones((self.num_states, 1))
-        self.R[self.num_states-1] = 0
-        self.R[self.goal_states_seq] = self.r_goal
+        self.R = self.r_step * np.ones((self.num_states, self.num_states, 1))
+        self.R[self.num_states-1, :, :] = 0
+
+        # for goal in self.goal_states_seq:
+        #     print('goal', goal)
+        #     self.R[goal, goal] = self.r_goal
+        for goal in self.goal_states_seq:
+            # print('goal', goal)
+            self.R[goal, goal] = self.r_goal
+
         for i in range(self.num_bad_states):
             if self.r_bad is None:
                 raise Exception("Bad state specified but no reward is given")
             bad_state = row_col_to_seq(self.bad_states[i,:].reshape(1,-1), self.num_cols)
-            self.R[bad_state, :] = self.r_bad
+            self.R[bad_state, :, :] = self.r_bad
         for i in range(self.num_restart_states):
             if self.r_restart is None:
                 raise Exception("Restart state specified but no reward is given")
@@ -180,12 +187,13 @@ class GridWorld:
 
                 # check if the state is the goal state or an obstructed state - transition to end
                 row_col = seq_to_col_row(state, self.num_cols)
+                end_states = None
                 if self.obs_states is not None:
-                    end_states = np.vstack((self.obs_states, self.goal_states))
-                else:
-                    end_states = self.goal_states
+                    end_states = self.obs_states #np.vstack((self.obs_states, self.goal_states))
+                # else:
+                #     end_states = self.goal_states
 
-                if any(np.sum(np.abs(end_states-row_col), 1) == 0):
+                if end_states is not None and any(np.sum(np.abs(end_states-row_col), 1) == 0):
                     self.P[state, self.num_states-1, action] = 1
 
                 # else consider stochastic effects of action
@@ -209,6 +217,8 @@ class GridWorld:
                         next_state = row_col_to_seq(self.start_state, self.num_cols)
                         self.P[state,:,:] = 0
                         self.P[state,next_state,:] = 1
+
+        # print('self.P', self.P)
         return self
 
     def _get_direction(self, action, direction):

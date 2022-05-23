@@ -2,8 +2,10 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from utils.helper_functions import create_policy_direction_arrays
 import numpy as np
+import copy
 
-def plot_gridworld(model, value_function=None, policy=None, state_counts=None, title=None, path=None):
+def plot_gridworld(model, value_function=None, policy=None, state_counts=None, title=None, path=None,
+                   start_states=[None], goal_states=[None]):
     """
     Plots the grid world solution.
 
@@ -30,18 +32,28 @@ def plot_gridworld(model, value_function=None, policy=None, state_counts=None, t
     if value_function is not None and state_counts is not None:
         raise Exception("Must supple either value function or state_counts, not both!")
 
-    fig, ax = plt.subplots()
+    fig, axes = plt.subplots(len(start_states), len(goal_states))
 
-    # add features to grid world
-    if value_function is not None:
-        add_value_function(model, value_function, "Value function")
-    elif state_counts is not None:
-        add_value_function(model, state_counts, "State counts")
-    elif value_function is None and state_counts is None:
-        add_value_function(model, value_function, "Value function")
+    print('axes', axes)
+    if len(start_states)*len(goal_states)==1:
+        axes = np.array([[axes]])
+    elif len(goal_states)==1:
+        axes = axes[:, None]
+    elif len(start_states) == 1:
+        axes = axes[None, :]
 
-    add_patches(model, ax)
-    add_policy(model, policy)
+    for i, start_state in enumerate(start_states):
+        for j, goal_state in enumerate(goal_states):
+            # add features to grid world
+            if value_function is not None:
+                add_value_function(model, copy.deepcopy(value_function), "Value function", axes[i,j])
+            # elif state_counts is not None:
+            #     add_value_function(model, state_counts, "State counts")
+            # elif value_function is None and state_counts is None:
+            #     add_value_function(model, value_function, "Value function")
+
+            add_patches(model, axes[i,j], start_state)
+            add_policy(model, policy, axes[i,j], start_state=start_state)
 
     plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.12),
                fancybox=True, shadow=True, ncol=3)
@@ -52,7 +64,7 @@ def plot_gridworld(model, value_function=None, policy=None, state_counts=None, t
 
     plt.show()
 
-def add_value_function(model, value_function, name):
+def add_value_function(model, value_function, name, ax):
 
     if value_function is not None:
         # colobar max and min
@@ -63,19 +75,19 @@ def add_value_function(model, value_function, name):
         if model.obs_states is not None:
             index = model.obs_states
             val[index[:, 0], index[:, 1]] = -100
-        plt.imshow(val, vmin=vmin, vmax=vmax, zorder=0)
-        plt.colorbar(label=name)
+        ax.imshow(val, vmin=vmin, vmax=vmax, zorder=0)
+        # ax.colorbar(label=name)
     else:
         val = np.zeros((model.num_rows, model.num_cols))
-        plt.imshow(val, zorder=0)
-        plt.yticks(np.arange(-0.5, model.num_rows+0.5, step=1))
-        plt.xticks(np.arange(-0.5, model.num_cols+0.5, step=1))
-        plt.grid()
-        plt.colorbar(label=name)
+        ax.imshow(val, zorder=0)
+        ax.yticks(np.arange(-0.5, model.num_rows+0.5, step=1))
+        ax.xticks(np.arange(-0.5, model.num_cols+0.5, step=1))
+        ax.grid()
+        ax.colorbar(label=name)
 
-def add_patches(model, ax):
+def add_patches(model, ax, start_state):
 
-    start = patches.Circle(tuple(np.flip(model.start_state[0])), 0.2, linewidth=1,
+    start = patches.Circle(tuple(np.flip(start_state)), 0.2, linewidth=1,
                            edgecolor='b', facecolor='b', zorder=1, label="Start")
     ax.add_patch(start)
 
@@ -107,7 +119,7 @@ def add_patches(model, ax):
                                     label="Restart state" if i == 0 else None)
             ax.add_patch(restart)
 
-def add_policy(model, policy):
+def add_policy(model, policy, ax, start_state):
 
     if policy is not None:
         # define the gridworld
@@ -115,7 +127,7 @@ def add_policy(model, policy):
         Y = np.arange(0, model.num_rows, 1)
 
         # define the policy direction arrows
-        U, V = create_policy_direction_arrays(model, policy)
+        U, V = create_policy_direction_arrays(model, policy, start_state=start_state)
         # remove the obstructions and final state arrows
         ra = model.goal_states
         U[ra[:, 0], ra[:, 1]] = np.nan
@@ -129,4 +141,4 @@ def add_policy(model, policy):
             U[ra[:, 0], ra[:, 1]] = np.nan
             V[ra[:, 0], ra[:, 1]] = np.nan
 
-        plt.quiver(X, Y, U, V, zorder=10, label="Policy")
+        ax.quiver(X, Y, U, V, zorder=10, label="Policy")

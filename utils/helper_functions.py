@@ -9,7 +9,47 @@ def seq_to_col_row(seq, num_cols):
     c = seq - r * num_cols
     return np.array([[r, c]])
 
-def create_policy_direction_arrays(model, policy):
+# def create_policy_direction_arrays(model, policy):
+#     """
+#      define the policy directions
+#      0 - up    [0, 1]
+#      1 - down  [0, -1]
+#      2 - left  [-1, 0]
+#      3 - right [1, 0]
+#     :param policy:
+#     :return:
+#     """
+#     # action options
+#     UP = 0
+#     DOWN = 1
+#     LEFT = 2
+#     RIGHT = 3
+#
+#     # intitialize direction arrays
+#     U = np.zeros((model.num_rows, model.num_cols))
+#     V = np.zeros((model.num_rows, model.num_cols))
+#
+#     for state in range(model.num_states-1):
+#         # get index of the state
+#         i = tuple(seq_to_col_row(state, model.num_cols)[0])
+#         # define the arrow direction
+#         if policy[state] == UP:
+#             U[i] = 0
+#             V[i] = 0.5
+#         elif policy[state] == DOWN:
+#             U[i] = 0
+#             V[i] = -0.5
+#         elif policy[state] == LEFT:
+#             U[i] = -0.5
+#             V[i] = 0
+#         elif policy[state] == RIGHT:
+#             U[i] = 0.5
+#             V[i] = 0
+#
+#     return U, V
+
+
+def create_policy_direction_arrays(model, policy, start_state):
     """
      define the policy directions
      0 - up    [0, 1]
@@ -26,10 +66,14 @@ def create_policy_direction_arrays(model, policy):
     RIGHT = 3
 
     # intitialize direction arrays
-    U = np.zeros((model.num_rows, model.num_cols))
-    V = np.zeros((model.num_rows, model.num_cols))
+    U = np.empty((model.num_rows, model.num_cols))
+    V = np.empty((model.num_rows, model.num_cols))
+    U[:] = np.nan
+    V[:] = np.nan
 
-    for state in range(model.num_states-1):
+    goal_reached = False
+    state = row_col_to_seq(start_state[None, :], model.num_cols) #model.start_state_seq
+    while goal_reached is False:
         # get index of the state
         i = tuple(seq_to_col_row(state, model.num_cols)[0])
         # define the arrow direction
@@ -45,10 +89,10 @@ def create_policy_direction_arrays(model, policy):
         elif policy[state] == RIGHT:
             U[i] = 0.5
             V[i] = 0
-
+        state = model._get_state(state, int(policy[state][0][0]))
+        if model.R[state]:
+            goal_reached = True
     return U, V
-
-
 
 
 
